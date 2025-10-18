@@ -1,0 +1,155 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  phone         String?
+  password      String?
+  balance       Float    @default(0)
+  points        Int      @default(0)
+  isMember      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  printJobs     PrintJob[]
+}
+
+model PrintJob {
+  id              String         @id @default(cuid())
+  userId          String?
+  fileName        String
+  originalName    String
+  fileSize        Int
+  fileType        String
+  filePath        String
+  pinCode         String         @unique
+  colorMode       ColorMode      @default(BW)
+  paperSize       PaperSize      @default(A4)
+  copies          Int            @default(1)
+  duplex          Boolean        @default(false)
+  staples         Boolean        @default(false)
+  orientation     Orientation    @default(PORTRAIT)
+  totalPages      Int
+  pricePerPage    Float
+  totalPrice      Float
+  status          PrintStatus    @default(PENDING)
+  machineId       String?
+  transactionId   String?        @unique
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  expiresAt       DateTime       // Auto-delete after 15 minutes
+  
+  user            User?          @relation(fields: [userId], references: [id])
+  machine         Machine?       @relation(fields: [machineId], references: [id])
+}
+
+model Transaction {
+  id              String           @id @default(cuid())
+  printJobId      String?          @unique
+  amount          Float
+  paymentMethod   PaymentMethod
+  paymentStatus   PaymentStatus    @default(PENDING)
+  paymentId       String?          // Gateway transaction ID
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model Machine {
+  id              String           @id @default(cuid())
+  name            String
+  location        String
+  address         String
+  latitude        Float?
+  longitude       Float?
+  printerType     PrinterType      @default(A4) // A4 or F4 printer
+  status          MachineStatus    @default(OFFLINE)
+  lastSeen        DateTime?
+  paperLevel      Int              @default(100) // percentage
+  inkLevel        Int              @default(100) // percentage
+  currentPageCount Int             @default(0)
+  totalPageCount  Int              @default(0)
+  isActive        Boolean          @default(true)
+  openTime        String?          @default("08:00") // HH:MM format
+  closeTime       String?          @default("22:00") // HH:MM format
+  dailyPrintCount Int              @default(0)
+  lastResetDate   DateTime?        @default(now())
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  printJobs       PrintJob[]
+}
+
+model Pricing {
+  id              String           @id @default(cuid())
+  paperSize       PaperSize
+  colorMode       ColorMode
+  pricePerPage    Float
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+enum ColorMode {
+  BW
+  COLOR
+}
+
+enum PaperSize {
+  A4
+  F4
+}
+
+enum PrinterType {
+  A4
+  F4
+}
+
+enum Orientation {
+  PORTRAIT
+  LANDSCAPE
+}
+
+enum PrintStatus {
+  PENDING
+  PAID
+  QUEUED
+  PRINTING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+enum PaymentMethod {
+  QRIS
+  WALLET
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum MachineStatus {
+  ONLINE
+  OFFLINE
+  BUSY
+  ERROR
+  MAINTENANCE
+}
